@@ -208,7 +208,25 @@ def load_chat_history_from_json(filename="chat_archive.json"):
 # 멀티 체인 프로세스 실행 함수
 def multi_chain_process(user_input, is_last_interaction=False):
     global chat_history, recent_history
+    
+    # 마무리 멘트 추가 (마지막 사용자 입력 시)
+    if is_last_interaction:
+        typing_effect("오늘 대화는 여기까지네요. 대화를 통해 사용자님에 대해 더 많이 알게 되어 즐거웠습니다. 다음에 또 대화 나눠요! 😊")
+    
+    # 성향 분석은 마지막 입력 이후 별도로 진행
+    if is_last_interaction:
+        all_history = load_chat_history_from_json()
+        combined_history = json.dumps(all_history, ensure_ascii=False)
+        summary = chain2.invoke({"chat_history": combined_history})
+        typing_effect(f"요약: {summary}")
 
+        # Big Five 분석 수행
+        big_five_result = chain3.invoke({"summary": summary})
+        typing_effect("Big Five 성향 분석 결과:")
+        typing_effect(big_five_result)
+
+        return big_five_result
+    
     # 1단계: 사용자 입력에 대한 응답 생성 및 히스토리 추가
     chat_response = chain1.invoke({"user_input": user_input})
     #chat_response = clean_response(chat_response)
@@ -225,23 +243,7 @@ def multi_chain_process(user_input, is_last_interaction=False):
     # JSON에 기록 저장
     save_chat_history_to_json(chat_history)
 
-    # 마무리 멘트 추가 (마지막 사용자 입력 시)
-    if is_last_interaction:
-        typing_effect("오늘 대화는 여기까지네요. 대화를 통해 사용자님에 대해 더 많이 알게 되어 즐거웠습니다. 다음에 또 대화 나눠요! 😊")
-
-    # 성향 분석은 마지막 입력 이후 별도로 진행
-    if is_last_interaction:
-        all_history = load_chat_history_from_json()
-        combined_history = json.dumps(all_history, ensure_ascii=False)
-        summary = chain2.invoke({"chat_history": combined_history})
-        typing_effect(f"요약: {summary}")
-
-        # Big Five 분석 수행
-        big_five_result = chain3.invoke({"summary": summary})
-        typing_effect("Big Five 성향 분석 결과:")
-        typing_effect(big_five_result)
-
-        return big_five_result
+    
 
     return chat_response
 
@@ -258,7 +260,7 @@ def start_chatbot():
     # 사용자 입력 및 대화 진행
     for i in range(5):
         user_input = input("사용자 입력: ")
-        if i == 5:  # 마지막 대화 시 마무리 멘트 추가
+        if i == 4:  # 마지막 대화 시 마무리 멘트 추가
             multi_chain_process(user_input, is_last_interaction=True)
             break
         else:
